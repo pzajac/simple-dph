@@ -14,7 +14,7 @@ object czechCountry extends Country("Czech") {
 
 object Env {
   val dateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
-  
+}  
 
 class Address (val street: String, val town: String, val country: Country) 
 
