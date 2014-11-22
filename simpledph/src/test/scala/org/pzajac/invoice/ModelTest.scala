@@ -7,8 +7,6 @@ import org.joda.time._
 @Test
 class AppTest {
 
-
-    
    @Test
   def example = {
     val country = czechCountry
@@ -35,7 +33,7 @@ class AppTest {
     val milis = date1.getMillis();
     val intervalBuilder = new DphIntervalBuilder()
     val dphReport = new DphReport(myCOmpany, intervalBuilder.createForQuarter(2014, 4), List(ini1, ini2))
-    assertEquals("incomming invoices", 2, dphReport.incommingInvoices.size)
+    assertEquals("incomming invoices", 2, dphReport.incommingInvoices.invoices.size)
     println (dphReport.summaryReport)
     println("ok")
   }

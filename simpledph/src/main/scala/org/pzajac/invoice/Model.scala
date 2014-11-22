@@ -15,7 +15,6 @@ object czechCountry extends Country("Czech") {
 object Env {
   val dateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
   
-}
 
 class Address (val street: String, val town: String, val country: Country) 
 
@@ -59,8 +58,6 @@ class Invoice (val id: String,
    def recordsWithDefault: Map[DphType, Amount] = records.withDefaultValue(new Amount(0, 0, 0))
 }
   
-class EuOutgoingInvoices (val companyToInvoinces : Map[Company,List[Invoice]])
-
 /**
  * Date interval for DPH report.
  */
@@ -76,43 +73,59 @@ class DphIntervalBuilder {
 	}
 }
 
-
-class DphReport(myCompany: Company,
-                interval: Interval,
-                allInvoices: List[Invoice]) {
-  
-  def invoices: List[Invoice] = allInvoices.filter(invoice => interval.contains(invoice.invoiceDate))
-  /**
-   * all incomming invoices for dph report
-   */
-  def incommingInvoices : List[Invoice] = invoices.filter(_.invoiceType == IncommingInvoice)
-  /**
-   * all outgoing resources for dph report
-   */
-  def outgoingInvoices : List[Invoice] = invoices.filter(_.invoiceType == OutgoingInvoice)
-  /**
-   * all invoices for "souhrnne hlaseni"
-   */
-  def euOutgoingInvoices: EuOutgoingInvoices = {
-    val euInvoices = outgoingInvoices.filter(_.isToEu)
-    new EuOutgoingInvoices(euInvoices.groupBy(_.company))
-  }
+/**
+ * List with invoices and some operations.
+ */
+class Invoices (val invoices: List[Invoice]){
   /** @return all DphTypes */
-  def usedDphTypes(invoicesx: List[Invoice]): Set[DphType] = Set() ++ invoicesx.map(_.records.keys).flatten
-  
-  /**
+  def usedDphTypes: Set[DphType] = Set() ++ invoices.map(_.records.keys).flatten
+/**
    * Summarizes records for DphType.
    */
-  def totalAmount(invoicesx: List[Invoice], dphType: DphType): Amount = {
-    val amounts: List[Amount] = invoicesx.map(_.recordsWithDefault(dphType))
+  def totalAmount(dphType: DphType): Amount = {
+    val amounts: List[Amount] = invoices.map(_.recordsWithDefault(dphType))
     amounts.foldLeft(new Amount(0, 0, 0)) ((a1, a2) => new Amount(a1.baseValue + a2.baseValue,
         a1.dphValue + a2.dphValue,
         a1.total + a2.total))
   }
   
-  def summaryReport : String = { 
-    val noEuInvoince: List[Invoice] = incommingInvoices.filterNot(_.isToEu)
-    val usedDphs = usedDphTypes(noEuInvoince)
+  def filter (filterFn : Invoice => Boolean): Invoices = new Invoices(invoices.filter(filterFn(_)))
+  
+  def groubByCompany: Map[Company,List[Invoice]] = invoices.groupBy(_.company)
+}
+
+
+class DphReport(myCompany: Company,
+                interval: Interval,
+                allInvoices: List[Invoice]) {
+  
+  lazy val invoices: Invoices = new Invoices(allInvoices.filter(invoice => interval.contains(invoice.invoiceDate)))
+  /**
+   * all incomming invoices for dph report
+   */
+  lazy val incommingInvoices : Invoices = invoices.filter(_.invoiceType == IncommingInvoice)
+  /**
+   * all incomming invoices for dph report from czech rep
+   */
+  lazy val incommingCzechInvoices : Invoices = incommingInvoices.filter(!_.isToEu)
+ 
+  /**
+   * all outgoing resources for dph report
+   */
+  lazy val outgoingInvoices: Invoices = invoices.filter(_.invoiceType == OutgoingInvoice)
+  /**
+   * all outgoing resources for dph report
+   */
+  lazy val outgoingCzechInvoices: Invoices = outgoingInvoices.filter (!_.isToEu)
+  /**
+   * all invoices for "souhrnne hlaseni"
+   */
+  lazy val euOutgoingInvoices: Invoices = invoices.filter(_.isToEu)
+  
+  
+  lazy val summaryReport : String = { 
+    val noEuInvoince: Invoices = incommingInvoices.filter(!_.isToEu)
+    val usedDphs = noEuInvoince.usedDphTypes
     val table = for (dph <- usedDphs) yield createSubSummary(dph, noEuInvoince)
     val rows = table.map(_.map(_.mkString(" ")).mkString("\n"))
     rows.mkString("\n")
@@ -121,8 +134,8 @@ class DphReport(myCompany: Company,
   /**
    * Create summary for an DphType.
    */
-  private def createSubSummary(dph : DphType, invoices : List[Invoice]) : List[List[String]] = {
-    val records: List[List[String]] = for (invoice <- invoices 
+  private def createSubSummary(dph : DphType, invoices : Invoices) : List[List[String]] = {
+    val records: List[List[String]] = for (invoice <- invoices.invoices 
          if(invoice.records.contains(dph))) yield {
              val amount: Amount = invoice.records(dph)
              // datum plneni
