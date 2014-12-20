@@ -120,14 +120,24 @@ import DphType._
      val odp_zocelk= odp_sum_nar // TODO r50 r.53
 
      /**
-      * ř. 65
+      * ř. 651
       * Je rozdílovým řádkem odpočtu daně a daně na výstupu (ř.63 - ř.62) v případě, že odpočet daně převyšuje daň na výstupu.
       *  Tato hodnota musí obsahovat kladné číslo.
       */
      val dano_no = odp_zocelk - dan5 - dan23 // "182"
 
-    def generateXml : Unit = {
-     val a = vetaD
+    def generateXml = {
+      <pisemnost>
+        <DPHD3>
+          {vetaD}
+          {vetaP}
+          {veta1}
+          {veta2}
+          {veta3}
+          {veta4}
+          {veta5}
+        </DPHD3>
+      </pisemnost>
 //     println a.getClass
     }
 
