@@ -95,7 +95,7 @@ class Invoices (val invoices: List[Invoice]){
 }
 
 
-class DphReport(myCompany: Company,
+class DphReport(val myCompany: Company,
                 interval: Interval,
                 allInvoices: List[Invoice]) {
   
